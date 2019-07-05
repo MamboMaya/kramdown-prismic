@@ -1,5 +1,5 @@
 require 'kramdown'
 
-require 'kramdown/parser/prismic'
-require 'kramdown/converter/prismic'
-require 'kramdown-prismic/version'
+require_relative 'kramdown/parser/prismic'
+require_relative 'kramdown/converter/prismic'
+require_relative 'kramdown-prismic/version'

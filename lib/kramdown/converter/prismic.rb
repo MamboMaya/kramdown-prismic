@@ -98,12 +98,61 @@ module Kramdown
       end
 
       def convert_blockquote(element)
+        if element.attr["class"] === "instagram-media"
+          {
+            content: {
+              spans: [],
+              text: ""
+            },
+            type: "embed",
+            data: {
+              embed_url: element.attr["data-instgrm-permalink"] ? element.attr["data-instgrm-permalink"] : element.children[0].children[1].children[0].attr['href'] ,
+              type: "rich"
+            }
+          }
+        elsif element.attr["class"] == "embedly-card"
+          {
+            content: {
+              spans: [],
+              text: ""
+            },
+            type: "embed",
+            data: {
+              embed_url: element.children.first.children.first.attr['href'],
+              type: "rich"
+            }
+          }
+        elsif element.attr["class"] == "twitter-tweet"
+          {
+            content: {
+              spans: [],
+              text: ""
+            },
+            type: "embed",
+            data: {
+              embed_url: find_embed_url(element),
+              type: "rich"
+            }
+          }
+        else
         {
           type: 'preformatted',
           content: extract_content(element)
         }
+        end
       end
+#################
+      def find_embed_url(element)
+        # text = 'nope'
+        element.children.map do |child|
+          return child.attr['href'] if child.type == :a && !child.attr['href']['hashtag']
 
+          child.children.map do |grandchild|
+            return grandchild.attr['href'] if grandchild.type == :a && !grandchild.attr['href']['hashtag']
+          end
+        end
+      end
+##################
       def convert_hr(element)
       end
 
@@ -171,16 +220,29 @@ module Kramdown
       end
 
       def insert_span(element, memo, span)
-        span[:start] = memo[:text].size
-        extract_content(element, memo)
-        span[:end] = memo[:text].size
-        memo[:spans] << span
+        if memo == nil || memo[:text] == nil
+          memo
+        else
+          span[:start] = memo[:text].size
+          extract_content(element, memo)
+          span[:end] = memo[:text].size
+          memo[:spans] << span
+          memo
+        end
+      end
+
+      def extract_span_header(element, memo)
+        memo[:text] = element.value
         memo
       end
 
       def extract_span_text(element, memo)
-        memo[:text] += element.value
-        memo
+        if memo && memo[:text]
+          memo[:text] += element.value
+          memo
+        else
+          memo
+        end
       end
 
       def extract_span_a(element, memo)
@@ -212,6 +274,10 @@ module Kramdown
         memo[:text] += "\n"
       end
 
+      def extract_span_xml_comment(element, memo)
+        extract_content(element, memo)
+      end
+
       def extract_span_html_element(element, memo)
         warning('translating html elements is not supported')
       end
@@ -240,7 +306,9 @@ module Kramdown
       end
 
       def extract_span_entity(element, memo)
-        memo[:text] += element.value.char
+        if memo && memo[:text]
+          memo[:text] += element.value.char
+        end
       end
 
       def extract_span_smart_quote(element, memo)
